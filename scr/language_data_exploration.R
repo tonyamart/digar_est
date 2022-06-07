@@ -15,6 +15,8 @@ dat <- data_full %>%
 
 glimpse(dat)
 
+
+
 #### Plot page sizes ####
 
 dat %>% 
@@ -58,6 +60,8 @@ dat <- dat %>%
   # OCR accuracy as numeric column
   mutate(ocr_acc = str_remove_all(PageOCRAccuracy, "%")) %>% 
   mutate(ocr_acc = as.numeric(ocr_acc))
+
+write.csv(dat, "~/Documents/ds/digar_newspapers_2022/data/meta_rus_lang.csv")
 
 #### Plot: languages in 'Russian' newspapers ####
 
@@ -146,4 +150,9 @@ dat %>%
        title = "OCR accuracy dependence on language",
        subtitle = "N pages = 96 030 \nNB! Very few pages in German after 1890")
   
+glimpse(dat)
+dat %>% 
+  filter(!is.na(ocr_acc)) %>%
+  ggplot(aes(x = PageImageWidth, y = ocr_acc)) + geom_point(alpha = 0.5, color = "lightblue")
 
+# to do: Ukrainian is Russian, probably detected in a wrong way bcs of very bad OCR quality: make a plot to see whether it is true
