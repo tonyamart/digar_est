@@ -4,9 +4,11 @@ library("wesanderson")
 
 theme_set(theme_minimal())
 
-data_full <- read.csv("~/Downloads/dorevol_meta_lang.csv")
+setwd("Documents/est_np/")
+dat <- read.csv("data/meta_rus_lang.csv")
 glimpse(data_full)
 
+#### preparation (if took full dataset) ####
 dat <- data_full %>% 
   select(docid, PageID, lang, PageImageHeight, PageImageWidth,
          PageOCRAccuracy, PageTitle, MeanOCRAccuracyVol, PageViewURL, PageTextWordCount,
@@ -61,9 +63,16 @@ dat <- dat %>%
   mutate(ocr_acc = str_remove_all(PageOCRAccuracy, "%")) %>% 
   mutate(ocr_acc = as.numeric(ocr_acc))
 
-write.csv(dat, "~/Documents/ds/digar_newspapers_2022/data/meta_rus_lang.csv")
+#write.csv(dat, "~/Documents/ds/digar_newspapers_2022/data/meta_rus_lang.csv")
 
 #### Plot: languages in 'Russian' newspapers ####
+
+years_count <- dat %>% 
+  #filter(place_cln %in% c("Ревель", "Рига")) %>% 
+  group_by(year.x, lang_cln
+           #, place_cln
+  ) %>% 
+  count()
 
 dat %>% 
   #filter(place_cln %in% c("Ревель", "Рига")) %>% 
