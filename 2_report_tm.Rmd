@@ -196,13 +196,13 @@ meta %>%
 
 Below I would like to test similar topic modeling approach to see, if it can catch differences between some of the newspapers appeared in 1917 and well-established official newspaper of the Governorate of Estonia (the same discussed above). The hypothesis is that the newly appeared newspapers would speak about different topics than the official one.  
   
-To test the hypothesis a topic model was build, taking into consideration _______ biggest newspapers of the 1917. Roughly these newspapers may be characterized as 1) the oldest official one (*The newspaper of the Governement of Estonia*), 2) Old Revel local newspaper *Revel News* ("Ревельские известия") 3) more center-oriented new local Tallinn newspapers: *The Word of Revel* ("Ревельское слово"), 4) revolution-inspired press of the social-democrats ("Известiя Ревельскаго совета рабочих и воинских депутатов", "Утро правды", "Звезда") and soldiers and sailors ("Свободное слово солдата и матроса").  
+To test the hypothesis a topic model was build, taking into consideration six biggest newspapers of the 1917. Roughly these newspapers may be characterized as 1) the oldest official one (*The newspaper of the Governement of Estonia*), 2) Old Revel local newspaper *Revel News* ("Ревельские известия") 3) more center-oriented new local Tallinn newspapers: *The Word of Revel* ("Ревельское слово"), 4) revolution-inspired press of the social-democrats ("Известiя Ревельскаго совета рабочих и воинских депутатов", "Утро правды") and soldiers and sailors ("Свободное слово солдата и матроса").  
 
 ```{r, echo = F, include = T}
 t <- tibble(PageID = gamma_1917$document) %>% distinct
 t <- left_join(t, meta_1917, by = "PageID")
 t %>% 
-  filter(!str_detect(title, "Наше слово")) %>% 
+  filter(!str_detect(title, "Наше слово|Звезда")) %>% 
   distinct(title, firstyear, lastyear) %>% 
   kbl(caption = "Newspapers of the 1917 in the corpus",
       col.names = c("First year of issue", "Last year", "Title")) %>% 
@@ -213,11 +213,10 @@ rm(meta, t)
 
 The data includes 3228 pages from which the words longer than 2 characters and not included in the stoplist for Russian were taken (8174 unique words / lemmata). The LDA topic model build for 20 topics which are in this case monolongual.  
 
-From the topic distribution on the timescale, the most different from the others is the oldest official newspaper (*ekmteataja*), which seems to discuss local themes in somewhat of archaic discourse: its most probable topic 20 refers to local issues such are "city" "Revel" "court", etc., more or less in the same manner as in the 1880s; topics 7 and 17 appears to be more contemporary discussing "counsil", "gouvernment", "minister"[s] but it seems none of other sources uses this vocabulary in the same way.  
+From the topic distribution on the timescale, the most different from the others is the oldest official newspaper (*ekmteataja*), which seems to discuss local themes in somewhat of archaic discourse: its most probable topic 20 refers to local issues such are "city" "Revel" "court", etc., more or less in the same manner as in the 1880s; topics 7 and 17 appears to be more contemporary discussing "counsel", "government", "minister"[s], "duty" but it seems none of other sources uses this vocabulary in the same way.  
 
-For instance, the most visible topic for the left-wing *The Morning of the Truth* ("Утро правды"), *Tallinna Tööliste ja Sõjawäeliste Saadikute Nõukogu Teataja* and 
 
-```{r}
+```{r, include = T, echo = F, comment=F, warning=F, message=F, fig.width= 8, fig.height=6}
 gamma_1917 <- gamma_1917 %>% 
   mutate(title = str_remove_all(document, "\\d+|\\W")) %>% 
   mutate(year = str_replace_all(document, 
@@ -238,23 +237,34 @@ gamma_month_title %>%
   ggplot(aes(x = month, y = gamma_avg, fill = factor(topic))) + 
   geom_col() + 
   scale_fill_manual(values = cols25(n = 20)) + 
-  facet_wrap(~ title, scales = "free", ncol = 2)
+  facet_wrap(~ title, scales = "free", nrow = 2) + 
+  labs(x = "Month of 1917", y = "", fill = "Topic")
 ```
 
-```{r, include = F, echo = F}
+```{r, include = T, echo = F, fig.width=8, fig.height=6}
 top_beta_1917 <- beta_1917 %>% 
   group_by(topic) %>% 
   slice_max(beta, n = 10) 
 
 top_beta_1917 %>%
+  filter(topic %in% c(7, 17, 20, 1, 2, 18, 19)) %>% 
   ggplot(aes(x = beta, y = reorder_within(term, beta, topic), 
              fill = factor(topic))) + 
   geom_col(show.legend = FALSE) + 
   scale_y_reordered() + 
-  facet_wrap(~ topic, scales = "free") + 
-  scale_fill_manual(values = cols25(20))
+  facet_wrap(~ topic, scales = "free", nrow = 2) + 
+  scale_fill_manual(values = 
+                      c("#1F78C8", "#ff0000", "#FFD700", "#C814FA", "#0000FF", "#36648B", "#00E2E5")) + 
+  labs(x = "", y = "", 
+       title = "Most probable words for selected topics")
 ```
 
+The left-wing *The Morning of the Truth* ("Утро правды"), *Tallinna Tööliste ja Sõjawäeliste Saadikute Nõukogu Teataja* and *The Free Word of Soldiers and Salors* ("Свободное слово солдата и матроса") use another set of words to address political issues:  
+* topic 19 most probable words: "nation", "democrat", "working", "against", "comrade"; 
+* topic 1: "union", "labor", "factory", "work"; 
+They are also far more concerned about the course of the war and discuss more of the news from the front line (topic 2) and sea battles (topic 18).  
+
+As the gap between the official language of the empire and the actual political discourse was rising in Russian Empire since the 1860s, this difference is clearly visible in the Estonian local newspapers as well. The political orientation of the newly created newspapers based on their vocabulary use might be an object of further investigation.  
 
 
 

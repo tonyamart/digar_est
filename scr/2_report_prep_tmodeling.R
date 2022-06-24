@@ -37,8 +37,9 @@ top_beta %>%
   scale_y_reordered() + 
   facet_wrap(~ topic, scales = "free")
 
-top_beta %>% 
-  filter(topic == 8)
+# 7th, 12th, 14th, 17th, 19th etc.
+top_beta_1880 %>% 
+  filter(topic == 19)
 
 #### gamma ####
 
