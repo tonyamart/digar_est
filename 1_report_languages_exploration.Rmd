@@ -1,0 +1,160 @@
+---
+title: "Languages in Estonian Newspaper collection (before 1918)"
+author: "Antonina Martynenko"
+date: "6/7/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+library(tidyverse)
+library(tidytext)
+library("wesanderson")
+
+theme_set(theme_minimal())
+
+dat <- read.csv("~/Documents/ds/digar_newspapers_2022/data/meta_rus_lang.csv")
+dat <- dat %>% select(-X)
+
+t1852 <- read.csv("~/Documents/ds/digar_newspapers_2022/data/1852_sample.csv")
+ukr <- read.csv("~/Documents/ds/digar_newspapers_2022/data/ukr_sample.csv")
+```
+
+### Data overview
+
+This document explores langauges inside the "Russian" part of DIGAR Collection. The metadata for newspapers issued before 1918 shows large number of Russian-language newspaper' pages, however many of these pages either not monolingual or not in Cyrillic at all. This short analysis shows how the history of Russification in Estonia is reflected in digitized newspaper pages and how metadata issues may probably influence OCR quality.
+
+---
+
+According to the metadata, a large part of the 19-century newspapers in the collection are marked as Russian-language ones. If counted in pages, there should be more than 120 thousands pages marked as "Russian" (`Language` column), with the following total distribution of pages over time:
+
+```{r, include = TRUE, echo = FALSE, out.width="50%"}
+glimpse(dat %>% select(PageID, PageOCRAccuracy, date.x, year.x, DocumentTitle, language, country))
+
+dat %>% 
+  group_by(year.x) %>% 
+  count() %>% 
+  ggplot(aes(x = year.x, y = n)) + geom_col() + 
+  labs(x = "Year", y = "Number of pages", title = 'Distribution of pages in Russian language according to metadata')
+```
+
+After retrieving these pages' texts, it is obvious that at least partly the title-level language metadata is wrong: e.g. the earliest "Russian" pages in the collection dated 1852 are mostly in German
+
+```{r, include=TRUE, echo = FALSE, results='asis'}
+t1852 %>% 
+  mutate(text = str_sub(text, start = 1L, end = 400L)) %>% select(text) %>% sample_n(3) %>%
+  kbl() %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"))
+
+```
+   
+
+---
+### Language detection
+
+To make a new rough language detection an R-package `textcat` was used. It takes a text as a string and calculates its average score to detect a language, so as a result a new metadata column will have one most probable language detected for each page.  
+A better solution may be found here, since many pages will probably have several languages combined at one page. However, this package is still applicable for a rough estimation of major languages proportion in these pages.
+
+`textcat` language detection is not ideal, the full set of detected languages shows how low-quality OCR influences the results. Few pages were tagged with languages very unlikely used in Estonian newspapers, such as Nepali or Indonesian. The language distribution for the langauges appearing in at least 150 pages is the following: 
+
+
+```{r, echo=FALSE}
+table(dat$lang_cln)
+```
+However, even the "Ukrainian" pages should be excluded from the analysis, since these pages are in fact badly OCR-ed pages in Cyrillic script. Randomly selected chunks shows these are mostly Russian, but being unable to check them all I filtered these pages as highly messy and unpredictable. This result is very disappointing showing not a language diversity but issues inside tools trained on major languages and giving an imperialistic assumption on Ukrainian being (on the character-level) a messy Cyrillic which is not Russian. 
+
+```{r, include=TRUE, echo = FALSE, results='asis'}
+ukr %>% 
+  mutate(text = str_sub(text, start = 1L, end = 400L)) %>% select(text) %>% sample_n(3) %>% 
+  kbl() %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+```
+
+If we exclude the "Ukrainian" from consideration, there is the language distribution obrained from `textcat`:
+
+```{r, echo = F, include=TRUE}
+dat %>% 
+  filter(lang_cln != "ukrainian") %>% 
+  group_by(year.x, lang_cln
+           #, place_cln
+           ) %>% 
+  count() %>% 
+  ggplot(aes(x = year.x, y = n, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = wes_palette("Darjeeling2")) + 
+  #facet_wrap(~place_cln) + 
+  labs(x = "Year", 
+       y = "Number of pages",
+       fill = "Language", 
+       title = "Languages detected inside the pages of 'Russian' newspapers",
+       subtitle = "'textcat' package was used for detection: it calculates the most probable language for a page, \ne.g. if 30% of the page is in Russian and 70% is in German, it will be tagged as German") 
+```
+
+I believe this result is important, because it clearly shows that part of the metadata labels for "Russian" language used in 19-century newspapers should be reassessed: clearly, these are newspapers in German. 
+At the same time, I find this language switch from German to Russian in late 1880s very convincing, since 1880s are known as a Russification period. Curiously enough, it happened very abruptly, so may be it would be interesting for further researchers to see if the content of newspapers switched from German to Russian changed significantly.
+
+To add more details, the language distribution does not depend on place of publishing, which  in overwhelming majority of cases are Riga or Tallinn (Revel):
+
+```{r, echo = F, include=TRUE, out.width="50%"}
+dat %>% 
+  group_by(year.x, place_cln, lang_cln) %>% 
+  count() %>% 
+  ggplot(aes(x = year.x, y = n, fill = place_cln)) + geom_col() + 
+  scale_fill_manual(values = c("#81A88D", "#972D15", "#D8B70A", "#02401B", "#A2A475")) + 
+  labs(x = "Year", 
+       y = "Number of pages", 
+       fill = "Place of publishing", 
+       title = "Places of publishing of 'Russian' newspapers",
+       subtitle = "German and Russian language pages counted together, \nno preferences between place and langauge discovered")
+
+dat %>% 
+  filter(place_cln %in% c("Ревель", "Рига") & lang_cln %in% c("russian", "german")) %>% 
+  group_by(year.x, place_cln, lang_cln) %>% 
+  count() %>% 
+  ggplot(aes(x = year.x, y = n, fill = place_cln)) + geom_col() + 
+  scale_fill_manual(values = c( "#D8B70A", "#02401B")) + 
+  facet_wrap(~lang_cln) + 
+  labs(x = "Year", 
+       y = "Number of pages", 
+       fill = "Place of publishing")
+```
+   
+   
+---
+### OCR accuracy & languages
+
+From a technical point of view, the languages (or scripts) hidden behind the "Russian" tag in metadata seems to be important for the OCR quality. If we are to plot OCR accuracy values for decades it may seem that there is a decrease in 1880-s led by Russification. This is, however, misleading, because the reason behind the decrease is different OCR accuracy for German and Russian (or Latin and Cyrillic scripts in general); it is also visible that pages detected as "Ukrainian" have very low OCR quality.
+
+```{r, echo = F, include=TRUE, out.width="50%"}
+dat %>% 
+  filter(!is.na(ocr_acc)) %>% 
+  group_by(decade.x, ocr_acc) %>% 
+  ggplot(aes(x = as.factor(decade.x), y = ocr_acc)) + geom_boxplot(col = "#798E87") + 
+  labs(x = "", y = "OCR accuracy (%)",
+       title = "OCR accuracy (no language differentiation)")
+```
+
+```{r, echo = F, include=TRUE, out.width="70%"}
+dat %>% 
+  filter(!is.na(ocr_acc) & lang_cln %in% c("german", "russian", "ukrainian")) %>% 
+  group_by(decade.x, ocr_acc, lang_cln) %>% 
+  ggplot(aes(x = as.factor(decade.x), y = ocr_acc, fill = lang_cln)) + 
+  geom_boxplot(width = 0.5, position = position_dodge(width = 0.55)) + 
+  scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  labs(x = "", 
+       y = "OCR accuracy (%)",
+       fill = "Language", 
+       title = "OCR accuracy dependence on language",
+       subtitle = "N pages = 96 030 \nNB! Very few pages in German after 1890")
+  
+```
+
+
+
+
+
+
+
+
+```{r}
+```
