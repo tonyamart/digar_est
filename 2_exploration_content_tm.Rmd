@@ -1,0 +1,261 @@
+---
+title: "Newspaper content exploration: A case study on imperialistic Russian discourse in the 1880s and 1917"
+author: "Antonina Martynenko"
+date: '2022-06-24'
+output: html_document
+---
+
+
+```{css style settings, echo = FALSE}
+blockquote {
+    padding: 10px 20px;
+    margin: 0 0 20px;
+    font-size: 13px;
+    border-left: 5px solid #eee;
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytext)
+library(kableExtra)
+
+library(wesanderson)
+library(pals)
+theme_set(theme_minimal())
+
+# loading data
+meta <- read.csv("data/meta_rus_lang.csv")
+meta_1880 <- meta %>% 
+  filter(year.x < 1891 & year.x > 1879)
+
+meta_1917 <- meta %>% 
+  filter(year.x == 1917)
+
+rm(meta)
+
+beta_1880 <- read.csv("data/models/beta_1880_20.csv")
+gamma_1880 <- read.csv("data/models/gamma_1880_20.csv")
+```
+
+## Exploration with topic modelling
+
+##### Summary 
+
+The simple methodological idea behind the following experiments is whether we can use topic modelling on historical OCR-ed newspaper data to spot some historical events that happened during a given period. The two periods and problems explored below are:  
+I - Russification in the Baltic governorates in the 1880s:    
+II - Reactions to two Russian revolutions in 1917.   
+
+##### Data
+The lists of words (MFW) used for model building are available on [drive](https://drive.google.com/drive/folders/1HCGkiryWwziRi4bp246gYw1P1CYL47Sj?usp=sharing). The preprocessing steps and models building showed in the notebook: [github](https://github.com/tonyamart/digar_est/blob/main/scr/7_topic_models_creation.ipynb).
+
+* * *  
+### Part I  
+#### Russification: Switch from German to Russian in local newspapers of Governorates of Estonia and Livonia  
+  
+This part of the blog post explores the switch from German to Russian language of the official newspapers of Governorates of Estonia and Livonia, shortened as `ekmteataja` and `livzeitung` respectively (the full titles are: rus. *Эстляндские губернские ведомости* / ger. *Estländische Gouvernements-Zeitung* and rus. *Лифляндские губернские ведомости* / ger. *Livländische Gouvernements-Zeitung*). As shown in the blog post on the *language labeling* in DIGAR collection, the digitized newspapers data shows that between 1885 and 1886 the main newspapers of the two governorates both ended to use German and started to publish texts almost exclusively in Russian. This issue will be studied below using a subset of newspaper pages published in the 1880s.   
+  
+Throughout the history of the two newspapers, their content was never monolingual: a proportion of German, Russian and Estonian texts can be found for the whole period under consideration. However, the severe restrictions on the language use brought by Russification can be seen in both cases by the year 1886.     
+
+```{r, echo = FALSE, include = TRUE, fig.width = 9, fig.height=4}
+meta_1880 %>% 
+  filter(lang_cln %in% c("german", "russian", "estonian")) %>% 
+  mutate(title_cln = str_remove_all(docid, "\\d+")) %>% 
+  group_by(year.x, title_cln, lang_cln) %>% 
+  count() %>% 
+  ggplot(aes(x = as.character(year.x), y = n, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = c(
+    wes_palette("Rushmore1")[5], wes_palette("Rushmore1")[3], wes_palette("Rushmore1")[4])) + 
+  facet_wrap(~title_cln, scales = "free") + 
+  labs(x = "Year", 
+       y = "Number of pages", 
+       fill = "Language")
+```
+
+The change from predominantly German pages to Russian happened abruptly in the Estonian Gouvernorate's newspaper (*ekmteataja*) in 1886 and a bit more smoothly at the same time in the Livonian Gouvernorate's one (*livzeitung*). Number of pages in Estonian stayed low in the 1880s.  
+   
+For the further experiment a random sample of 3000 pages in German and in Russian was taken from the whole corpus (Estonian and Livonian newspapers mixed; see the full code in `6_np_1880.ipynb`). After the selection of pages, words in texts were counted and, in the case of Cyrillic script, transformed to modern orthography and lemmatized. Transformation to the modern orthography was made with `russpelling` Python module (see the implementation in `scr/new_ofr.py`) and lemmatization performed with `pymystem3` (see `scr/lemmatization.ipynb`).  
+  
+    
+For building the model a selection of words longer than 3 characters was used, which are not in the stoplist and appeared at least 5 times in the corpus. It results in 6745 unique words (35021 German and 52582 Russian tokens in total), 5789 documents.  
+An LDA model with 20 topics was built on the resulting data.   
+  
+
+```{r, include = T, eval = F}
+stoplist <- c("что", "это", "быть", "тот", "который", "", "они", "для", "наш", "свой", "этот", "тот", "как", "все", "год","при", "час", "она", "есть", "чтобы", "давать", "один", "только", "время", "кто", "так", "огь", "уже", "ваш", "сто", "amp","под", "сие", "или", "день", "оть", "пта","январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь","часть", "еще", "весь", "должный", "такой", "если", "себя", "сам", "окт", "том", "когда", "про", "прo", "копа", 
+"кой", "сей", "мочь", "без",
+"der", "die", "das", "dem", "den", "von", "des", "werden", "auf", "bei", "und", "mit", "vom", "zur", "uhr", "daß", "für", "zum", "sich", "wird", "welche", "ein", "eine", "eins", "groß", "ist", "mal", "aus", "oder", "nicht", "kop", "als","durch", "nach", "sie", "er", "es", "pfd", "bis", "per", "dito", "unter", "mai", "aus", "allen", "alle", "alles", "thlr", "diese", "dieses", "diesem", "diesen", "auch", "man", "sind", "ich", "nur", "einem", "wenn", "hat", "haben", "alt","einer", "sub", "worden", "belegene", "dess", "herrn", "herr", "über", "dieser", "aber", "nebst", "wie", "pol", "sammt", "jahr")
+```
+
+
+#### LDA model output
+As can be seen from the most probable words in each topic, the model easily distinguishes German and Russian, e.g. uniquely-German topics are the 7th, 12th, etc. Content-wise topics in German and in Russian are very similar, containing mostly official news or advertisements. In both languages, the official news-related topics seem to be focused on local issues (naming places, governmental units such as magistrates and local courts), advertisements are about sales, property, prices, etc.  
+  
+```{r, echo = F, include = T, fig.height=10, fig.width=8}
+top_beta_1880 <- beta_1880 %>% 
+  group_by(topic) %>% 
+  slice_max(beta, n = 10) 
+
+top_beta_1880 %>%
+  ggplot(aes(x = beta, y = reorder_within(term, beta, topic), 
+             fill = factor(topic))) + 
+  geom_col(show.legend = FALSE) + 
+  scale_y_reordered() + 
+  facet_wrap(~ topic, scales = "free") + 
+  scale_fill_manual(values = cols25(n = 20)) + 
+  labs(x = "", y = "", 
+       title = "Most probable words in topics")
+```
+  
+The only topic that is significantly different from the rest is the 8th that clearly belongs to ideological side of Russian politics: its most probable words are "Russian", "society", "church", "common", "language", "path", "committee", "orthodox", "region", "school". These are the keywords highly important for the discourse around Russification: the topic reflects an imperialistic view on the citizens of the empire as one nation ("Russian") as opposed to minorities living in the governorates of Estonia and Livonia; as in the middle of the 19th century, the ideological support to Russification was given by the church (appearance of the words "church" and "orthodox"). The topic also refers to the language politics and education reforms in the region applying to "language" and "school". All 10 of the most probable words of the 8th topic do not appear as the most probable in other topics.  
+The question is: how much is this topic visible in the corpus?   
+
+```{r, echo = F, include = T, out.width="50%", comment=F, warning=F, message=F}
+gamma_1880 <- gamma_1880 %>% 
+  mutate(title = str_remove_all(document, "\\d+|\\W")) %>% 
+  mutate(year = str_replace_all(document, 
+                                "\\w+(\\d{4})(\\d{2})(\\d{2})\\..*", "\\1")) %>% 
+  mutate(month = str_replace_all(document, 
+                                 "\\w+(\\d{4})(\\d{2})(\\d{2})\\..*", "\\2"))
+
+gamma_years <- gamma_1880 %>% 
+  group_by(year, topic) %>% 
+  summarise(gamma_avg = mean(gamma))
+
+gamma_summary <- gamma_1880 %>% 
+  group_by(title, year, topic) %>% 
+  summarise(gamma_avg = mean(gamma))
+
+gamma_years %>% 
+  ggplot(aes(x = year, y = gamma_avg, fill = factor(topic))) + 
+  geom_col() + 
+  scale_fill_manual(values = cols25(n = 20)) + 
+  labs(x = "Year", y = "Avg topic probability", fill = "Topic")
+
+```
+
+If we look at the averaged topic distribution, the general assumption to have different sets of topics before and after 1885 is confirmed: the language difference is caught by the model. The presence of topics as the 16th (Russian topic discussing money and sales of natural products) shows that there was always some language mixing also before 1885. The topic 8 appeared unsurprisingly in 1886 and took the biggest part in 1888.  
+However, there is a difference in topic distribution if we take the Estonian and Livonian newspapers separately:  
+
+```{r, include = T, echo = F, fig.height=8, fig.width=5}
+gamma_summary %>% 
+  ggplot(aes(x = year, y = gamma_avg, fill = factor(topic))) + geom_col() + 
+  facet_wrap(~title, scales = "free", ncol = 1) + 
+  scale_fill_manual(values = cols25(n = 20)) + 
+  labs(x = "", y = "", fill = "Topic")
+```
+
+According to the random sample used, the presence of several topics are exclusive for the newspaper of the Governorate of Estonia, including the "ideological" topic 8. Different sets of topics appeared in the two newspapers suggesting that the content of news was different despite geographical and linguistic (German-language governorates) closeness. Difference in the language use does not, however, explains why a similar “ideological” topic did not appear in Livonian governorate's newspaper at the same time as topic 8 appears at *ekmteataja*. One can suppose that there was probably another printed media in Riga to communicate the issue or that the Russification process was going differently in the two regions: the problem may be investigated further using both distant and close reading techniques.  
+  
+* * *
+### II  
+#### Estonian Russian-language newspapers in 1917  
+  
+Another period full of events is the year of two Russian revolutions. This is probably the only and last period of Russian-language printing in Estonia when several new newspapers appeared at the time to cover current events. New printed media were established as an answer to great changes in political life, as it was said, for example, in center-oriented newspaper *The word of Revel"* ("Ревельское слово"):   
+  
+> "'The Word of Revel' is being born during the hard times of timelessness, in the twilight of sinister uncertainties, in the time of a nightmare suffocation. This defines the conditions of the very existence of this new print media, of the new broadcaster of the word which is alive, fresh, truthful, brave, and, as far as possible, free. <...> These days we cannot keep silent: our position obliges us to speak about current needs, negative sides of the present times, which construct society's evil <...>."
+> *The Word of Revel.* 1816. 24. detsember (the first issue)
+
+
+```{r, echo = F, include=T, out.width="50%"}
+# load data
+beta_1917 <- read.csv("data/models/beta_1917_20.csv")
+gamma_1917 <- read.csv("data/models/gamma_1917_20.csv")
+
+# plot for new newspapers appeared??
+meta <- read.csv("data/meta_rus_lang.csv")
+
+meta %>% 
+  filter(year.x > 1890 & year.x < 1920) %>% 
+  mutate(title_cln = str_remove_all(docid, "\\d+")) %>% 
+  group_by(year.x, title_cln) %>% 
+  count() %>% 
+  ungroup() %>% 
+  select(-n) %>% 
+  group_by(year.x) %>% 
+  count() %>% 
+  ggplot(aes(x = year.x, y = n)) + geom_col(fill = wes_palette("Chevalier1")[1]) + 
+  labs(x = "Year", y = "Number of newspapers",
+       title = "Number of Russian-language newspapers in Estonia", 
+       subtitle = "DIGAR collection metadata")
+
+```
+  
+Below I would like to test a similar topic modeling approach to see if it can catch differences between some of the newspapers that appeared in 1917 and the well-established official newspaper of the Governorate of Estonia (the same discussed in the Part I). The hypothesis is that the newly appeared newspapers would speak about different topics than the old official one.   
+   
+To test the hypothesis a topic model was built, taking into consideration six biggest newspapers of 1917. Roughly these newspapers may be characterized as  
+1. the oldest official one (*The newspaper of the Governement of Estonia*),  
+1. Old Revel local newspaper *Revel News* ("Ревельские известия"),  
+1. center-oriented new local Tallinn newspapers: *The Word of Revel* ("Ревельское слово"),  
+1. new revolution-inspired press of the social-democrats ("Известiя Ревельскаго совета рабочих и воинских депутатов", "Утро правды") and soldiers and sailors ("Свободное слово солдата и матроса").  
+  
+```{r, echo = F, include = T}
+t <- tibble(PageID = gamma_1917$document) %>% distinct
+t <- left_join(t, meta_1917, by = "PageID")
+t %>% 
+  filter(!str_detect(title, "Наше слово|Звезда")) %>% 
+  distinct(title, firstyear, lastyear) %>% 
+  kbl(caption = "Newspapers of the 1917 in the corpus",
+      col.names = c("First year of issue", "Last year", "Title")) %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+
+rm(meta, t)
+```
+
+The data includes 3228 pages from which were excluded stopwords and the words longer than 2 characters (resulting in 8174 unique words / lemmata). The LDA topic model is built for 20 topics which are in this case monolingual.  
+  
+From the topic distribution on the timescale,  the oldest official newspaper (*ekmteataja*) appears to be the most different from the others. It discusses local news in somewhat of archaic discourse: its most probable topic 20 refers to local issues such are "city" "Revel" "court", etc., more or less in the same manner as in the 1880s; topics 7 and 17 appears to be more contemporary discussing "counsel", "government", "minister"[s], and "duty", but it seems none of the other sources uses this vocabulary in the same way to speak about current events (the word "duty" is a particular relict of the tsarist Russia).  
+  
+```{r, include = T, echo = F, comment=F, warning=F, message=F, fig.width= 8, fig.height=6}
+gamma_1917 <- gamma_1917 %>% 
+  mutate(title = str_remove_all(document, "\\d+|\\W")) %>% 
+  mutate(year = str_replace_all(document, 
+                                "\\w+(\\d{4})(\\d{2})(\\d{2})\\..*", "\\1")) %>% 
+  mutate(month = str_replace_all(document, 
+                                 "\\w+(\\d{4})(\\d{2})(\\d{2})\\..*", "\\2"))
+
+gamma_month_title <- gamma_1917 %>% 
+  group_by(title, month, topic) %>% 
+  summarise(gamma_avg = mean(gamma))
+
+gamma_month <- gamma_1917 %>% 
+  group_by(month, topic) %>% 
+  summarise(gamma_avg = mean(gamma))
+
+gamma_month_title %>% 
+  filter(title != "nasheslovo") %>%  # includes only 2 months
+  ggplot(aes(x = month, y = gamma_avg, fill = factor(topic))) + 
+  geom_col() + 
+  scale_fill_manual(values = cols25(n = 20)) + 
+  facet_wrap(~ title, scales = "free", nrow = 2) + 
+  labs(x = "Month of 1917", y = "", fill = "Topic")
+```
+
+```{r, include = T, echo = F, fig.width=8, fig.height=6}
+top_beta_1917 <- beta_1917 %>% 
+  group_by(topic) %>% 
+  slice_max(beta, n = 10) 
+
+top_beta_1917 %>%
+  filter(topic %in% c(7, 17, 20, 1, 2, 18, 19)) %>% 
+  ggplot(aes(x = beta, y = reorder_within(term, beta, topic), 
+             fill = factor(topic))) + 
+  geom_col(show.legend = FALSE) + 
+  scale_y_reordered() + 
+  facet_wrap(~ topic, scales = "free", nrow = 2) + 
+  scale_fill_manual(values = 
+                      c("#1F78C8", "#ff0000", "#FFD700", "#C814FA", "#0000FF", "#36648B", "#00E2E5")) + 
+  labs(x = "", y = "", 
+       title = "Most probable words for selected topics")
+```
+  
+The left-wing *The Morning of the Truth* ("Утро правды", *utropravda* label), *Tallinna Tööliste ja Sõjawäeliste Saadikute Nõukogu Teataja* (*tooljasojavnoukteat*) and *The Free Word of Soldiers and Salors* ("Свободное слово солдата и матроса", *svobodnojeslovosoldata*) use another set of words to address political issues. for instance:  
+* topic 19 most probable words: "nation", "democrat", "working", "against", "comrade";  
+* topic 1 unique to other topics words are: "union", "labor", "factory", "work";  
+The new media are also far more concerned about the course of the war and discuss more of the news from the front line (topic 2, the most probable words: "front", "region", "south-", "enemy") and sea battles (topic 18, the most probable words: "war", "fleet", "very", "even", "sea", "court", "vessel").   
+   
+As the gap between the official language of the empire and the actual political discourse was rising in the Russian Empire since the 1860s, this difference is clearly visible in the Estonian local newspapers as well. The political orientation of the newly created newspapers based on their vocabulary use might be an object of further investigation.  
+ 
+  
