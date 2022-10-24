@@ -1,0 +1,168 @@
+---
+title: "01 report addition: Language detection task performed on sections"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, include = F, echo = F, message=F, warning=F}
+library(tidyverse)
+library(wesanderson)
+library(kableExtra)
+theme_set(theme_minimal())
+```
+
+```{r, include=F, eval=F, echo=F}
+# do not run
+
+# select only important rows from the full metadata from hpc & write it in the folder
+dat <- read.csv("../../../data/01_prerevol_meta_langs_sections.csv")
+glimpse(dat)
+
+dat_short <- dat %>% 
+  select(keyid, section_id, lang_cln, LogicalSectionTextWordCount, PageOCRAccuracy, year, decade)
+
+glimpse(dat_short)
+
+write.csv(dat_short, file = "../data/01_metadata.csv")
+```
+
+```{r, include=F, echo=F}
+# import metadata
+dat <- read.csv("../data/01_metadata.csv") %>% select(-X)
+
+# examples of wrong detections
+random_sample <- read.csv("../data/01_langs_samples.csv") %>% select(-X)
+```
+
+This notebook add results from the language detection made on the **section** level. Since only for the two newspapers sections were available, the results above cannot be direclty compared to the analysis above *(it is however possible to make a separate plot with the page-level language distribution in ekmteataja and livzeitung)*.
+Ten most common languages for sections are mostly the same as the ones detected on the page level, with higher level of error if section was too small.  
+
+```{r, include = T, echo = F, message=FALSE}
+dat %>% 
+  group_by(lang_cln) %>% 
+  count(sort = T) %>% 
+  ungroup() %>% 
+  summarise(language = lang_cln,
+            n_sections = n,
+            percentage = round(n_sections/sum(n_sections)*100, 2)) %>% 
+  top_n(10) %>% 
+  kbl() %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+```
+
+Such unexpected for Baltic newspapers languages as English, Bulgarian and Rumantsch appeared to be detection errors for short sections with low OCR quality. Unfortunately, as in the first part of the blog post, Ukrainian and Belarus languages are also detection errors most probably caused by poor OCR and/or lack of training data for these languages. The examples taken randomly for each of false-detected languages are shown below.
+
+```{r, include = T, echo = F}
+random_sample %>% 
+  filter(!lang_cln %in% c("estonian", "latvian")) %>% 
+  group_by(lang_cln) %>% 
+  sample_n(1) %>% 
+  ungroup() %>% 
+  mutate(text = str_sub(text, start = 1L, end = 500L)) %>% select(lang, text) %>%  
+  kbl() %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+```
+
+Nevertheless, for the sections labeled as Latvian or Estonian `textcat` package output seems to be true even for cases when several languages are mixed inside a section, e.g.:
+
+```{r, include = T, echo = F}
+random_sample %>% 
+  filter(lang_cln %in% c("estonian", "latvian")) %>% 
+  group_by(lang_cln) %>% 
+  sample_n(1) %>% 
+  ungroup() %>% 
+  mutate(text = str_sub(text, start = 1L, end=1000L)) %>% 
+  select(lang, text) %>% 
+  kbl() %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+```
+
+Selecting only Russian, German, Estonian and Latvian sections, the distribution of languages in sections is the following:
+```{r, include = T, echo = F}
+languages <- c("russian", "german", "estonian", "latvian")
+
+dat %>% 
+  filter(lang_cln %in% languages) %>% 
+  group_by(year, lang_cln) %>% 
+  count() %>% 
+  ggplot(aes(x = year, y = n, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = wes_palette("Darjeeling1")) + 
+  labs(x = "Year", 
+       y = "Number of sections",
+       fill = "Language", 
+       title = "Languages detected inside the sections of 'Russian' newspapers",
+       subtitle = "'textcat' package was used for detection: it calculates the most probable language for a section, \ne.g. if 30% of the section is in Russian and 70% is in German, it will be tagged as German") 
+```
+
+```{r, include = T, echo = F}
+dat %>% 
+  filter(lang_cln %in% languages) %>% 
+  group_by(year, lang_cln, keyid) %>% 
+  count() %>% 
+  ggplot(aes(x = year, y = n, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = wes_palette("Darjeeling1")) + 
+  facet_wrap(~keyid, scales = "fixed") + 
+  labs(x = "Year", 
+       y = "Number of sections",
+       fill = "Language", 
+       title = "Languages detected inside the sections of the two main 'Russian' newspapers",
+       subtitle = "Distribution according to the source") 
+```
+
+Very rough scaling of the length of a section and further plot:
+```{r, include = T, echo=F, message=FALSE}
+dat$section_length_scaled <- scale(dat$LogicalSectionTextWordCount) 
+
+dat %>% 
+  filter(lang_cln %in% languages) %>% 
+  mutate(section_length_scaled = section_length_scaled+1) %>% 
+  group_by(keyid, year, lang_cln) %>% 
+  summarise(n_sect = n(),
+    mean_length = mean(section_length_scaled),
+    amount_scaled = n_sect*mean_length) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = amount_scaled, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = wes_palette("Darjeeling1")) + 
+  facet_wrap(~keyid, scales = "fixed") + 
+  labs(x = "Year", 
+       y = "Scaled amount of texts",
+       fill = "Language", 
+       title = "Languages detected inside the sections of the two main 'Russian' newspapers",
+       subtitle = "Number of sections scaled according to a mean section length \nin each language in each year") 
+
+```
+
+OCR accuracy (to be finished & page id to be checked)  
+```{r, include = T, echo = F, message=F, warning=F}
+ocr_acc <- dat %>% 
+    filter(lang_cln %in% c("german", "russian", "ukrainian")) %>% 
+    mutate(ocr_acc = str_remove_all(PageOCRAccuracy, "%")) %>% 
+    mutate(ocr_acc = as.numeric(ocr_acc)) %>% 
+    # to be checked whether it is page id
+    mutate(page_id = str_extract(section_id, "^.*?\\.\\d+\\.\\d+")) %>% 
+    select(page_id, ocr_acc, decade)
+
+dat %>% 
+  filter(lang_cln %in% c("german", "russian")) %>% 
+  # not sure if it's right
+  mutate(page_id = str_extract(section_id, "^.*?\\.\\d+\\.\\d+")) %>% 
+  group_by(page_id) %>% 
+  count(lang_cln) %>% 
+  summarise(lang_cln = lang_cln, 
+            n_lang = n,
+            perc = n_lang/sum(n_lang)) %>% 
+  top_n(1) %>% 
+  ungroup() %>% 
+  filter(perc > 0.9) %>% 
+  left_join(ocr_acc, by = "page_id") %>% 
+  ggplot(aes(x = as.factor(decade), y = ocr_acc, fill = lang_cln)) + 
+  geom_boxplot(width = 0.5, position = position_dodge(width = 0.55)) + 
+  scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  labs(x = "", 
+       y = "OCR accuracy (%)",
+       fill = "Language", 
+       title = "OCR accuracy dependence on language",
+       subtitle = "Pages selected if >90% of sections on a page were in the target language")
+```
+
