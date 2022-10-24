@@ -1,0 +1,1 @@
+The code in `scr` folder shows how data was retrieved from the cluster and processed for further tasks. Many steps remain the same as in the previous analysis (see earlier scripts) but in this case the newspapers with *sections* division was used for comparison.
