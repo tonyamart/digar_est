@@ -27,17 +27,23 @@ library(pals)
 theme_set(theme_minimal())
 
 # loading data
-meta <- read.csv("data/meta_rus_lang.csv")
+meta <- read.csv("new_pipeline_sections/data/01_metadata.csv")
 meta_1880 <- meta %>% 
-  filter(year.x < 1891 & year.x > 1879)
+  filter(year < 1891 & year > 1879)
 
 meta_1917 <- meta %>% 
-  filter(year.x == 1917)
+  filter(year == 1917)
 
 rm(meta)
 
 beta_1880 <- read.csv("data/models/beta_1880_20.csv")
 gamma_1880 <- read.csv("data/models/gamma_1880_20.csv")
+
+beta_sect_20 <- read.csv("new_pipeline_sections/data/02_beta_1880_sections_20.csv")
+gamma_sect_20 <- read.csv("new_pipeline_sections/data/02_gamma_1880_sections_20.csv")
+
+beta_sect_50 <- read.csv("new_pipeline_sections/data/02_beta_1880_sections_50.csv")
+gamma_sect_50 <- read.csv("new_pipeline_sections/data/02_gamma_1880_sections_50.csv")
 ```
 
 ## Exploration with topic modelling
@@ -55,26 +61,26 @@ The lists of words (MFW) used for model building are available on [drive](https:
 ### Part I  
 #### Russification: Switch from German to Russian in local newspapers of Governorates of Estonia and Livonia  
   
-This part of the blog post explores the switch from German to Russian language of the official newspapers of Governorates of Estonia and Livonia, shortened as `ekmteataja` and `livzeitung` respectively (the full titles are: rus. *Эстляндские губернские ведомости* / ger. *Estländische Gouvernements-Zeitung* and rus. *Лифляндские губернские ведомости* / ger. *Livländische Gouvernements-Zeitung*). As shown in the blog post on the *language labeling* in DIGAR collection, the digitized newspapers data shows that between 1885 and 1886 the main newspapers of the two governorates both ended to use German and started to publish texts almost exclusively in Russian. This issue will be studied below using a subset of newspaper pages published in the 1880s.   
+This part of the blog post explores the switch from German to Russian language of the official newspapers of Governorates of Estonia and Livonia, shortened as `ekmteataja` and `livzeitung` respectively (the full titles are: rus. *Эстляндские губернские ведомости* / ger. *Estländische Gouvernements-Zeitung* and rus. *Лифляндские губернские ведомости* / ger. *Livländische Gouvernements-Zeitung*). As shown in the blog post on the *language labeling* in DIGAR collection, the digitized newspapers data shows that between 1885 and 1886 the main newspapers of the two governorates both ended to use German and started to publish texts almost exclusively in Russian. This issue will be studied below using a subset of newspaper pages and sections published in the 1880s.   
   
 Throughout the history of the two newspapers, their content was never monolingual: a proportion of German, Russian and Estonian texts can be found for the whole period under consideration. However, the severe restrictions on the language use brought by Russification can be seen in both cases by the year 1886.     
 
-```{r, echo = FALSE, include = TRUE, fig.width = 9, fig.height=4}
+```{r, message=FALSE, echo = FALSE, include = TRUE, fig.width = 9, fig.height=4}
 meta_1880 %>% 
-  filter(lang_cln %in% c("german", "russian", "estonian")) %>% 
-  mutate(title_cln = str_remove_all(docid, "\\d+")) %>% 
-  group_by(year.x, title_cln, lang_cln) %>% 
-  count() %>% 
-  ggplot(aes(x = as.character(year.x), y = n, fill = lang_cln)) + geom_col() + 
+  filter(lang_cln %in% c("german", "russian", "estonian", "latvian")) %>% 
+  group_by(year, keyid, lang_cln) %>% 
+  summarise(wordcount = sum(LogicalSectionTextWordCount)) %>% 
+  ggplot(aes(x = year, y = wordcount, fill = lang_cln)) + geom_col() + 
   scale_fill_manual(values = c(
-    wes_palette("Rushmore1")[5], wes_palette("Rushmore1")[3], wes_palette("Rushmore1")[4])) + 
-  facet_wrap(~title_cln, scales = "free") + 
+    wes_palette("Rushmore1")[5], wes_palette("Rushmore1")[3], wes_palette("Rushmore1")[1],
+    wes_palette("Rushmore1")[4])) + 
+  facet_wrap(~keyid, scales = "free") + 
   labs(x = "Year", 
-       y = "Number of pages", 
+       y = "Number of words", 
        fill = "Language")
 ```
 
-The change from predominantly German pages to Russian happened abruptly in the Estonian Gouvernorate's newspaper (*ekmteataja*) in 1886 and a bit more smoothly at the same time in the Livonian Gouvernorate's one (*livzeitung*). Number of pages in Estonian stayed low in the 1880s.  
+The change from predominantly German pages to Russian happened abruptly in the Estonian Gouvernorate's newspaper (*ekmteataja*) in 1886 and a bit more smoothly at the same time in the Livonian Gouvernorate's one (*livzeitung*). Number of sections in Estonian and Lativan can be spotted using *sections* data but generally the usage of both languages in newspapers stayed low in the 1880s.  
    
 For the further experiment a random sample of 3000 pages in German and in Russian was taken from the whole corpus (Estonian and Livonian newspapers mixed; see the full code in `6_np_1880.ipynb`). After the selection of pages, words in texts were counted and, in the case of Cyrillic script, transformed to modern orthography and lemmatized. Transformation to the modern orthography was made with `russpelling` Python module (see the implementation in `scr/new_ofr.py`) and lemmatization performed with `pymystem3` (see `scr/lemmatization.ipynb`).  
   
@@ -147,7 +153,19 @@ gamma_summary %>%
   labs(x = "", y = "", fill = "Topic")
 ```
 
-According to the random sample used, the presence of several topics are exclusive for the newspaper of the Governorate of Estonia, including the "ideological" topic 8. Different sets of topics appeared in the two newspapers suggesting that the content of news was different despite geographical and linguistic (German-language governorates) closeness. Difference in the language use does not, however, explains why a similar “ideological” topic did not appear in Livonian governorate's newspaper at the same time as topic 8 appears at *ekmteataja*. One can suppose that there was probably another printed media in Riga to communicate the issue or that the Russification process was going differently in the two regions: the problem may be investigated further using both distant and close reading techniques.  
+According to the random sample used, the presence of several topics are exclusive for the newspaper of the Governorate of Estonia, including the "ideological" topic 8. Different sets of topics appeared in the two newspapers suggesting that the content of news was different despite geographical and linguistic (German-language governorates) closeness. Difference in the language use does not, however, explains why a similar “ideological” topic did not appear in Livonian governorate's newspaper at the same time as topic 8 appears at *ekmteataja*.  
+One can suppose that there was probably another printed media in Riga to communicate the issue or that the Russification process was going differently in the two regions: the problem may be investigated further using both distant and close reading techniques.  
+  
+    
+As full-pages data may be quite a noisy input for a topic model, the same experiment can be recreated using section division available both for *ekmteataja* and *livzeitung*. In this case the full dataset available for the 1880s was used: as in case of language detection task section-based data allowed to spot sections containing Estonian and Latvian, there is also a question whether a topic model will be able to distinguish these languages from German-based content. Another question to be tested is if input in sections can improve topic model output in terms of interpretation of topics in comparison with page input.  
+Two models were built for the experiment:  
+* one with the same parameters as with pages-input data discussed above (20 topics LDA model);  
+* another one with 50 topics which should give more granular results (50 topics model for the pages of the 1880s was less interpretable than the one with k=20 parameter, so it was not included into the report).  
+  
+```{r}
+
+```
+  
   
 * * *
 ### II  
