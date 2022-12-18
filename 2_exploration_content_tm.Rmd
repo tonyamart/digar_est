@@ -1,7 +1,7 @@
 ---
 title: "Newspaper content exploration: A case study on imperialistic Russian discourse in the 1880s and 1917"
 author: "Antonina Martynenko"
-date: '2022-06-24'
+date: '2022-12-16'
 output: html_document
 ---
 
@@ -31,19 +31,16 @@ meta <- read.csv("new_pipeline_sections/data/01_metadata.csv")
 meta_1880 <- meta %>% 
   filter(year < 1891 & year > 1879)
 
-meta_1917 <- meta %>% 
-  filter(year == 1917)
-
 rm(meta)
 
 beta_1880 <- read.csv("data/models/beta_1880_20.csv")
 gamma_1880 <- read.csv("data/models/gamma_1880_20.csv")
 
 beta_sect_20 <- read.csv("new_pipeline_sections/data/02_beta_1880_sections_20.csv")
-gamma_sect_20 <- read.csv("new_pipeline_sections/data/02_gamma_1880_sections_20.csv")
+gamma_sect_20 <- read.csv("new_pipeline_sections/data/02_gamma_sections_1880_20.csv")
 
 beta_sect_50 <- read.csv("new_pipeline_sections/data/02_beta_1880_sections_50.csv")
-gamma_sect_50 <- read.csv("new_pipeline_sections/data/02_gamma_1880_sections_50.csv")
+gamma_sect_50 <- read.csv("new_pipeline_sections/data/02_gamma_sections_1880_50.csv")
 ```
 
 ## Exploration with topic modelling
@@ -70,7 +67,7 @@ meta_1880 %>%
   filter(lang_cln %in% c("german", "russian", "estonian", "latvian")) %>% 
   group_by(year, keyid, lang_cln) %>% 
   summarise(wordcount = sum(LogicalSectionTextWordCount)) %>% 
-  ggplot(aes(x = year, y = wordcount, fill = lang_cln)) + geom_col() + 
+  ggplot(aes(x = as.factor(year), y = wordcount, fill = lang_cln)) + geom_col() + 
   scale_fill_manual(values = c(
     wes_palette("Rushmore1")[5], wes_palette("Rushmore1")[3], wes_palette("Rushmore1")[1],
     wes_palette("Rushmore1")[4])) + 
@@ -82,7 +79,7 @@ meta_1880 %>%
 
 The change from predominantly German pages to Russian happened abruptly in the Estonian Gouvernorate's newspaper (*ekmteataja*) in 1886 and a bit more smoothly at the same time in the Livonian Gouvernorate's one (*livzeitung*). Number of sections in Estonian and Lativan can be spotted using *sections* data but generally the usage of both languages in newspapers stayed low in the 1880s.  
    
-For the further experiment a random sample of 3000 pages in German and in Russian was taken from the whole corpus (Estonian and Livonian newspapers mixed; see the full code in `6_np_1880.ipynb`). After the selection of pages, words in texts were counted and, in the case of Cyrillic script, transformed to modern orthography and lemmatized. Transformation to the modern orthography was made with `russpelling` Python module (see the implementation in `scr/new_ofr.py`) and lemmatization performed with `pymystem3` (see `scr/lemmatization.ipynb`).  
+For the further experiment a random sample of 3000 pages in German and in Russian was taken from the whole corpus (Estonian and Livonian newspapers mixed; see the full code in `6_np_1880.ipynb`). After the selection of pages, words in texts were counted and, in the case of Cyrillic script, transformed to modern orthography and lemmatized. Transformation to the modern orthography was made with `russpelling` Python module (see the implementation in `scr/new_ofr.py`) and lemmatization for Russian performed with `pymystem3` (see `scr/lemmatization.ipynb`).  
   
     
 For building the model a selection of words longer than 3 characters was used, which are not in the stoplist and appeared at least 5 times in the corpus. It results in 6745 unique words (35021 German and 52582 Russian tokens in total), 5789 documents.  
@@ -97,7 +94,8 @@ stoplist <- c("что", "это", "быть", "тот", "который", "", "�
 
 
 #### LDA model output
-As can be seen from the most probable words in each topic, the model easily distinguishes German and Russian, e.g. uniquely-German topics are the 7th, 12th, etc. Content-wise topics in German and in Russian are very similar, containing mostly official news or advertisements. In both languages, the official news-related topics seem to be focused on local issues (naming places, governmental units such as magistrates and local courts), advertisements are about sales, property, prices, etc.  
+##### Pages as documents
+As can be seen from the most probable words in each topic, the model easily distinguishes German and Russian: see, for example, the uniquely-German topics number 7, 12, 14, and 19. Content-wise topics in German and in Russian are very similar, containing mostly words related to official news or advertisements. In both languages, the official news-related topics seem to be focused on local issues (naming places, governmental units such as magistrates and local courts), advertisements comprise words about sales, property, prices, etc.  
   
 ```{r, echo = F, include = T, fig.height=10, fig.width=8}
 top_beta_1880 <- beta_1880 %>% 
@@ -115,7 +113,7 @@ top_beta_1880 %>%
        title = "Most probable words in topics")
 ```
   
-The only topic that is significantly different from the rest is the 8th that clearly belongs to ideological side of Russian politics: its most probable words are "Russian", "society", "church", "common", "language", "path", "committee", "orthodox", "region", "school". These are the keywords highly important for the discourse around Russification: the topic reflects an imperialistic view on the citizens of the empire as one nation ("Russian") as opposed to minorities living in the governorates of Estonia and Livonia; as in the middle of the 19th century, the ideological support to Russification was given by the church (appearance of the words "church" and "orthodox"). The topic also refers to the language politics and education reforms in the region applying to "language" and "school". All 10 of the most probable words of the 8th topic do not appear as the most probable in other topics.  
+The only topic that is significantly different from the rest is the 8th that clearly belongs to ideological side of Russian politics: its most probable words are "Russian", "society", "church", "common", "language", "path", "committee", "orthodox", "region", "school". These are the keywords highly important for the discourse around Russification: the topic reflects an imperialistic view on the citizens of the empire as one nation ("Russian") as opposed to minorities living in the governorates of Estonia and Livonia; as in the middle of the 19th century, the ideological support to Russification was given by the church (appearance of the words "church" and "orthodox"). The topic also refers to the language politics and education reforms in the region referring to "language" and "school". All 10 of the most probable words of the 8th topic do not appear as the most probable in other topics.  
 The question is: how much is this topic visible in the corpus?   
 
 ```{r, echo = F, include = T, out.width="50%", comment=F, warning=F, message=F}
@@ -142,29 +140,105 @@ gamma_years %>%
 
 ```
 
-If we look at the averaged topic distribution, the general assumption to have different sets of topics before and after 1885 is confirmed: the language difference is caught by the model. The presence of topics as the 16th (Russian topic discussing money and sales of natural products) shows that there was always some language mixing also before 1885. The topic 8 appeared unsurprisingly in 1886 and took the biggest part in 1888.  
+If we look at the averaged topic distribution, the general assumption to have different sets of topics before and after 1885 is confirmed: the language difference is caught by the model. The presence of topics as the 16th (Russian topic discussing money and sales of natural products) sugessts that there was always some language mixing also before 1885. The topic 8 appeared unsurprisingly in 1886 and took the biggest part in 1888.  
 However, there is a difference in topic distribution if we take the Estonian and Livonian newspapers separately:  
 
-```{r, include = T, echo = F, fig.height=8, fig.width=5}
+```{r, include = T, echo = F, fig.height=4, fig.width=8}
 gamma_summary %>% 
   ggplot(aes(x = year, y = gamma_avg, fill = factor(topic))) + geom_col() + 
-  facet_wrap(~title, scales = "free", ncol = 1) + 
+  facet_wrap(~title, scales = "free", ncol = 2) + 
   scale_fill_manual(values = cols25(n = 20)) + 
   labs(x = "", y = "", fill = "Topic")
 ```
 
-According to the random sample used, the presence of several topics are exclusive for the newspaper of the Governorate of Estonia, including the "ideological" topic 8. Different sets of topics appeared in the two newspapers suggesting that the content of news was different despite geographical and linguistic (German-language governorates) closeness. Difference in the language use does not, however, explains why a similar “ideological” topic did not appear in Livonian governorate's newspaper at the same time as topic 8 appears at *ekmteataja*.  
-One can suppose that there was probably another printed media in Riga to communicate the issue or that the Russification process was going differently in the two regions: the problem may be investigated further using both distant and close reading techniques.  
-  
+According to the random sample used, the presence of several topics are unique for the newspaper of the Governorate of Estonia, including the "ideological" topic 8. Different sets of topics appeared in the two newspapers suggesting that the content of newspapers was different despite geographical and linguistic (German-language governorates) closeness. Difference in the language use does not, however, explains why a similar “ideological” topic did not appear in Livonian governorate's newspaper at the same time as topic 8 appears at *ekmteataja*.  
     
-As full-pages data may be quite a noisy input for a topic model, the same experiment can be recreated using section division available both for *ekmteataja* and *livzeitung*. In this case the full dataset available for the 1880s was used: as in case of language detection task section-based data allowed to spot sections containing Estonian and Latvian, there is also a question whether a topic model will be able to distinguish these languages from German-based content. Another question to be tested is if input in sections can improve topic model output in terms of interpretation of topics in comparison with page input.  
-Two models were built for the experiment:  
-* one with the same parameters as with pages-input data discussed above (20 topics LDA model);  
-* another one with 50 topics which should give more granular results (50 topics model for the pages of the 1880s was less interpretable than the one with k=20 parameter, so it was not included into the report).  
+##### Sections as documents  
   
-```{r}
+As full-pages data may be quite a noisy input for the LDA algorithm, the same experiment can be recreated using section division available both for *ekmteataja* and *livzeitung*. With sections data the full dataset available for the 1880s was used: as in case of language detection task section-based data allowed to spot sections containing Estonian and Latvian, there is also a question whether a topic model will be able to distinguish these languages from predominantly German sections. Another question to be answered is if input in sections can improve topic model output in terms of interpretation of topics in comparison with page input.    
+Two models were built for the experiment:    
+- one with the same parameters as with pages-input data discussed above (20 topics LDA model);  
+- another one with 50 topics which should give more granular results (50 topics model for the pages of the 1880s was less interpretable than the one with k=20 parameter, so it was not included into the report).  
+  
+As might be seen from the most probable words, the 20 topics from the section-based model are quite similar to the previous one where pages were used as an input. However, section-based model were able to spot sections in Estonian and gather functional Estonian words in the topic 7. At the same time, this model gives more topics with most probable words both in German and in Russian, as one might suggest, because some sections were mixing both of the languages (e.g. topics 2 and 4).  
+  
+The "ideological" topic is also appearing in this model (topic 9) with the very similar set of most probable words such as "church", "russian", "school", "orthodox", "language". There is however a switch towards Estonian news in this topic already presented, since the word "Revel" appeared as the third most probable in this topic. The comparison of the topics distribution over time shows similar results with the page-based analysis where this topic prevalenced only in *ekmteataja*.   
 
+
+``` {r, include = T, echo = F, fig.width = 8, fig.height = 6}
+beta_20 <- beta_sect_20 %>% 
+  group_by(topic) %>% 
+  slice_max(beta, n = 10)
+
+beta_20 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() + 
+  scale_fill_manual(values = rep(cols25(n = 25), times = 2))
 ```
+  
+```{r, inlclude = T, echo = F, fig.height=5, fig.width=8, message=FALSE}
+
+gamma_sec_summary <- gamma_sect_20 %>% 
+  mutate(title = str_remove_all(document, "\\d+|\\W|_\\w+$")) %>% 
+  mutate(year = str_replace_all(document, 
+                                "^\\w+(18\\d{2}).*", "\\1"))
+
+gamma_sec_summary <- gamma_sec_summary %>% 
+  group_by(title, year, topic) %>% 
+  summarise(gamma_avg = mean(gamma))
+
+gamma_sec_summary %>% 
+  ggplot(aes(x = year, y = gamma_avg, fill = factor(topic))) + geom_col() + 
+  facet_wrap(~title, scales = "free", ncol = 2) + 
+  scale_fill_manual(values = cols25(n = 20)) + 
+  labs(x = "", y = "", fill = "Topic")
+```  
+  
+The model with 50 topics allows to take a closer look into the precise meaning of this ideologically rich topics which are the 7th and the 42nd. Topic 7 is most probably  connected with the discussion on establishing Russian schools and other educational institutions in Estonian governorate (most probable words such as "Russian", "school", "language", "teacher", "national", "educational", "university", as well as "orthodox", "nation", "brotherhood" and "Estonian" in the second ten most probable words). Topic 42 is more directly related with religion and orthodox curch in particular in Estonian governorate with the most probable words being "church", "Revel", "orthodox", "monastery", "temple", etc.  
+The model with larger number of topics was also generally less mixing the langauges inside topics' most probable words as well as it was able to gather in separate topics not only Russian, German and Estonian (topic 3), but also created a separate topic of Latvian words (46). The latter also reveals the fact that the first discussed 20 topics model had spotted Latvian language from the pages input (topic 2), however from the most probable words of this topic alone it would be less possible to recognize it as Latvian because most of the most probable words from the page-based model are in fact OCR-errors.   
+  
+```{r, include = T, echo = F, fig.show='hold', fig.width=8, fig.height=5, message=F}
+beta_50 <- beta_sect_50 %>% 
+  group_by(topic) %>% 
+  slice_max(beta, n = 20)
+
+beta_50 %>% 
+  filter(topic %in% c(3, 7, 42, 46)) %>% 
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free", nrow = 1) +
+  scale_y_reordered() + 
+  scale_fill_manual(values = c(wes_palette("Cavalcanti1")[1], wes_palette("Cavalcanti1")[2], 
+                               wes_palette("Cavalcanti1")[4], wes_palette("Cavalcanti1")[5]))
+
+gamma_sec_50 <- gamma_sect_50 %>% 
+  mutate(title = str_remove_all(document, "\\d+|\\W|_\\w+$")) %>% 
+  mutate(year = str_replace_all(document, 
+                                "^\\w+(18\\d{2}).*", "\\1"))
+
+gamma_sec_50 <- gamma_sec_50 %>% 
+  group_by(title, year, topic) %>% 
+  summarise(gamma_avg = mean(gamma))
+
+gamma_sec_50 %>% 
+  filter(topic %in% c(3, 7, 42, 46)) %>% 
+  ggplot(aes(x = year, y = gamma_avg, fill = factor(topic))) + geom_col() + 
+  facet_wrap(~title, scales = "free", ncol = 2) + 
+  scale_fill_manual(values = c(wes_palette("Cavalcanti1")[1], wes_palette("Cavalcanti1")[2], 
+                               wes_palette("Cavalcanti1")[4], wes_palette("Cavalcanti1")[5])) + 
+  labs(x = "", y = "", fill = "Topic")
+
+
+``` 
+  
+The distribution of topics over time shows two tendencies regarding these four topics. On the one hand, there is a decrease in the presence of "Latvian" topic (46) in the collection happened simultaniously with the start of Russification in the 1885; this does not however the same for a very small but stable proportion of "Estonian" topic (3). On the other hand, the *ekmteataja* shows a major growth of the ideology-related topics in the second half of the period where both sections discussing Russian schools and orthodox church are much more present after the change of the main language used in the newspaper. This change seems to be important in studying the discourse around the Russification in Estonia and might be studied more thoroughly in future. In addition, this level of precision in topic model interpretation in comparison with the results above seems to prove that section-based input is more reliable than the use of page-level data.    
+   
+It is visible from both page- and section-based data that the topics of Russian education and orthodox church became very prominent in the Estonian governorate's local newspapers but not visible in the Livonian one. One can suppose that there was probably another printed media in Livonian governorate to communicate these issues or that the Russification process was going differently in the two regions: the problem may be as well investigated further using both distant and close reading techniques.   
+  
   
   
 * * *
@@ -184,6 +258,9 @@ gamma_1917 <- read.csv("data/models/gamma_1917_20.csv")
 
 # plot for new newspapers appeared??
 meta <- read.csv("data/meta_rus_lang.csv")
+
+meta_1917 <- meta %>% 
+  filter(year.x == 1917)
 
 meta %>% 
   filter(year.x > 1890 & year.x < 1920) %>% 
