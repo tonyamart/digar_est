@@ -14,7 +14,7 @@ library("wesanderson")
 
 theme_set(theme_minimal())
 
-dat <- read.csv("data/meta_rus_lang.csv")
+dat <- read.csv("data/01_pages_meta_rus_lang.csv")
 dat <- dat %>% select(-X)
 
 t1852 <- read.csv("data/1852_sample.csv")
@@ -23,17 +23,13 @@ ukr <- read.csv("data/ukr_sample.csv")
 
 #### Summary
 
-This blog post explores languages inside the "Russian" part of DIGAR Collection. The metadata for newspapers issued before 1918 shows large number of Russian-language newspapers, however the page-level data provides an evidence that many of the pages either not monolingual or not in Cyrillic at all. The analysis provided aims to show how the history of Russification in Estonia is reflected in digitized newspaper pages and how metadata issues may probably influence OCR quality.
+This blog post explores languages inside the "Russian" part of DIGAR Collection. The metadata for newspapers issued before 1918 shows large number of Russian-language newspapers, however both the page and section-level data provide an evidence that the newspapers were not monolingual and some part of the collection labeled as Russian is in fact in German, Estonian and Latvian. The analysis provided aims to show how the history of Russification in Estonia is reflected in digitized newspaper pages and how metadata issues may probably influence OCR quality.
 
 ---
 
 According to the metadata, a large part of the newspapers issued during the imperial period (before 1917) is marked as Russian-language ones. If counted in pages, there should be more than 120 thousands pages labeled as pages in "Russian" (`Language` column), with the following total distribution of pages over time:
 
 ```{r, include = TRUE, echo = FALSE, out.width="50%"}
-glimpse(dat %>% 
-          select(PageID, PageOCRAccuracy, date.x, year.x, DocumentTitle, language, country) %>% 
-          sample_n(10))
-
 dat %>% 
   group_by(year.x) %>% 
   count() %>% 
@@ -56,15 +52,15 @@ t1852 %>%
 ### Language detection
 
 To make a new rough language detection an R-package `textcat` was used. It takes a text as a string and calculates its average score to detect a language, so as a result a new metadata column will have one most probable language detected for each page.  
-A better solution may be found here, since many pages will probably have several languages combined at one page. However, this package is still applicable for a rough estimation of major languages proportion in these pages.
-
-`textcat` language detection is not ideal, the full set of detected languages shows how low-quality OCR influences the results. Few pages were tagged with languages very unlikely used in Estonian newspapers, such as Nepali or Indonesian. The language distribution for the languages appearing in at least 150 pages is the following: 
-
+A better solution may be found here, since many pages will probably have several languages combined at one page. However, this package is still applicable for a rough estimation of major languages proportion in these pages.  
+  
+`textcat` language detection is not ideal, the full set of detected languages shows how low-quality OCR influences the results. Few pages were tagged with languages very unlikely used in Estonian newspapers, such as Nepali or Indonesian. The language distribution for the languages appearing in at least 150 pages is the following:  
+  
 ```{r, echo=FALSE}
 table(dat$lang_cln)
 ```
-
-However, even the "Ukrainian" pages should be excluded from the analysis, since these pages are in fact badly OCR-ed pages in Cyrillic script. Randomly selected chunks shows these are mostly Russian, but being unable to check them all I filtered these pages as highly messy and unpredictable. This result is very disappointing showing not a language diversity but issues inside tools trained on major languages and giving an imperialistic assumption on Ukrainian being (on the character level) a messy Cyrillic which is not Russian (see an example below). 
+  
+However, even the "Ukrainian" pages should be excluded from the analysis, since these pages are in fact badly OCR-ed pages in Cyrillic script. Randomly selected chunks shows these pages are mostly in Russian, but being unable to check them all I filtered these pages as highly messy and unpredictable. This result is very disappointing showing not a language diversity but issues inside tools trained on major languages and giving an imperialistic assumption on Ukrainian being (on the character level) a messy Cyrillic which is not Russian (see an example below). 
 
 ```{r, include=TRUE, echo = FALSE, results='asis'}
 ukr %>% 
@@ -91,12 +87,12 @@ dat %>%
        title = "Languages detected inside the pages of 'Russian' newspapers",
        subtitle = "'textcat' package was used for detection: it calculates the most probable language for a page, \ne.g. if 30% of the page is in Russian and 70% is in German, it will be tagged as German") 
 ```
-
-I believe this result is important, since it clearly shows that part of the metadata labels for "Russian" language used in 19-century newspapers should be reassessed: clearly, these are newspapers in German. 
-At the same time, I find this language switch from German to Russian in late 1880s very convincing, since the 1880s are known as a Russification period. Curiously enough, it happened very abruptly, so it might be interesting for further researchers to see if the content of newspapers switched from German to Russian changed significantly.  
   
+I believe this result is important, since it clearly shows that part of the metadata labels for "Russian" language used in 19-century newspapers should be reassessed: clearly, these are newspapers in German.  
+At the same time, I find this language switch from German to Russian in late 1880s very convincing, since the 1880s are known as a Russification period. Curiously enough, it happened very abruptly, so it might be interesting for further researchers to see if the content of newspapers switched from German to Russian changed significantly.  
+   
 To add more details, the language distribution does not depend on place of publishing, which  in overwhelming majority of cases are Riga or Tallinn (Revel):
-
+  
 ```{r, echo = F, include=TRUE, out.width="50%"}
 dat %>% 
   group_by(year.x, place_cln, lang_cln) %>% 
@@ -125,10 +121,10 @@ dat %>%
    
 * * *
 ### OCR accuracy & languages
-
-From a technical point of view, the languages (or scripts) hidden behind the "Russian" tag in metadata seems to be important for the OCR quality. If we are to plot OCR accuracy values for decades it may seem that there is a decrease in 1880-s, as one might suppose, led by Russification. This is, however, misleading, because the reason behind the decrease is different OCR accuracy for German and Russian (or Latin and Cyrillic scripts in general). The plot below displays how the OCR quality distributed according to the new language metadata; it is also visible that pages detected as "Ukrainian" have very low OCR quality.  
-To sum up, language reassessment on a more granular level (i.e. section) seems important and feasible to be added to respective metadata entries and then grouped to multilingual labels for the language data of entire newspaper titles.  
-
+  
+From a technical point of view, the languages (or scripts) hidden behind the "Russian" tag in metadata seems to be important for the OCR quality. If we are to plot OCR accuracy values for decades it may seem that there is a decrease in 1880-s, as one might suppose, led by Russification. This is, however, misleading, because the reason behind the decrease is different OCR accuracy for German and Russian (or Latin and Cyrillic scripts in general). The plot below displays how the OCR quality distributed according to the new language metadata; it is also visible that pages detected as "Ukrainian" have very low OCR quality.   
+To sum up, language reassessment on a more granular level (i.e. section) seems important and feasible to be added to respective metadata entries and then grouped to multilingual labels for the language data of entire newspaper titles.   
+  
 ```{r, echo = F, include=TRUE, out.width="50%"}
 dat %>% 
   filter(!is.na(ocr_acc)) %>% 
@@ -151,6 +147,197 @@ dat %>%
        title = "OCR accuracy dependence on language",
        subtitle = "N pages = 96 030 \nNB! Very few pages in German after 1890")
   
+```
+  
+* * * 
+# Language detection based on sections data
+*Report update: 10/11/2022*  
+  
+```{r, include=F, eval=F, echo=F}
+# do not run
+
+# select only important rows from the full metadata from hpc & write it in the folder
+# dat <- read.csv("../../../data/01_prerevol_meta_langs_sections.csv")
+# glimpse(dat)
+# 
+# dat_short <- dat %>% 
+#   select(keyid, section_id, lang_cln, LogicalSectionTextWordCount, PageOCRAccuracy, year, decade)
+# 
+# glimpse(dat_short)
+
+# write.csv(dat_short, file = "../data/01_metadata.csv")
+```
+
+```{r, include=F, echo=F}
+# import metadata
+dat <- read.csv("data/01_metadata.csv") %>% select(-X)
+
+# examples of wrong detections
+random_sample <- read.csv("data/01_langs_samples.csv") %>% select(-X)
+```
+
+The part above showed the difference between title-level language metadata and actual languages used in the governmental newspapers in the collection: while the newspapers' language defined as "Russian", digitized materials allow to conclude that newspapers used predominantly German as a language of communication until mid-1880s. The analysis was done on the page level, determining the proportion of languages used and labeling each page with most probable language. The results might be yet improved using as input data not the whole pages but newspaper segments or **sections**, where each section will most probably be written in only one language.  
+This update of the report aims to demonstrate results from the language detection made on the **section** level. However, as sections division is available at the moment only for the two newspapers, the results below cannot be directly compared to the analysis done on the full corpus (namely, the sections are available only for Estonian and Livonian governorate official newspapers, shortened in the dataset as `ekmteataja` and `livzeitung` respectively).  
+The languages of sections were detected with the `textcat` package as in the page-level analysis.  
+Ten most common languages for sections are mostly the same as the ones detected on the page level; the probability of error is higher for small sections (in particular, the ones that include less than 20 words).  
+  
+```{r, include = T, echo = F, message=FALSE}
+dat %>% 
+  group_by(lang_cln) %>% 
+  count(sort = T) %>% 
+  ungroup() %>% 
+  summarise(language = lang_cln,
+            n_sections = n,
+            percentage = round(n_sections/sum(n_sections)*100, 2)) %>% 
+  top_n(10) %>% 
+  kbl() %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+```
+   
+Such unexpected (for Baltic newspapers) languages as English, Bulgarian and Rumantsch appeared to be detection errors for short sections with low OCR quality. Unfortunately, as well as in the case of page input, Ukrainian and Belarus languages are detection errors most probably caused by poor OCR and/or lack of training data for detecting these languages. The examples taken randomly for each of the false-detected language are shown below.  
+  
+```{r, include = T, echo = F}
+random_sample %>% 
+  filter(!lang_cln %in% c("estonian", "latvian")) %>% 
+  group_by(lang_cln) %>% 
+  sample_n(1) %>% 
+  ungroup() %>% 
+  mutate(text = str_sub(text, start = 1L, end = 500L)) %>% select(lang, text) %>%  
+  kbl() %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+```
+   
+Nevertheless, `textcat` package output seems to be true for the sections labeled as Latvian or Estonian even for cases when several languages are mixed inside a section, e.g.:
+   
+```{r, include = T, echo = F}
+random_sample %>% 
+  filter(lang_cln %in% c("estonian", "latvian")) %>% 
+  group_by(lang_cln) %>% 
+  sample_n(1) %>% 
+  ungroup() %>% 
+  mutate(text = str_sub(text, start = 1L, end=1000L)) %>% 
+  select(lang, text) %>% 
+  kbl() %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+```
+  
+Selecting only Russian, German, Estonian and Latvian sections, the distribution of languages in sections is the following:  
+  
+```{r, include = T, echo = F, fig.show='hold', out.width="50%"}
+languages <- c("russian", "german", "estonian", "latvian")
+
+dat %>% 
+  filter(lang_cln %in% languages) %>% 
+  group_by(year, lang_cln) %>% 
+  count() %>% 
+  ggplot(aes(x = year, y = n, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = wes_palette("Darjeeling2")[2:5]) + 
+  labs(x = "Year", 
+       y = "Number of sections",
+       fill = "Language", 
+       title = "Languages detected inside the sections of 'Russian' newspapers") 
+
+dat %>% 
+  filter(lang_cln %in% languages) %>% 
+  group_by(year, lang_cln, keyid) %>% 
+  count() %>% 
+  ggplot(aes(x = year, y = n, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = wes_palette("Darjeeling2")[2:5]) + 
+  facet_wrap(~keyid, scales = "fixed") + 
+  labs(x = "Year", 
+       y = "Number of sections",
+       fill = "Language", 
+       title = "Languages detected inside the sections of the two main 'Russian' newspapers",
+       subtitle = "Distribution according to the source: \nnewspapers of the Governorate of Estonia (left) and Livonia (right)") 
+```
+  
+Number of sections and words in each language:  
+  
+```{r, include = T, echo = F, message=FALSE}
+dat %>% 
+  filter(lang_cln %in% languages) %>% 
+  group_by(lang_cln, keyid) %>% 
+  summarise(n_sections = n(),
+    n_words = sum(LogicalSectionTextWordCount)) %>% 
+  #filter(lang_cln %in% c("estonian", "latvian")) %>% 
+  kbl(col.names = c("Language", "Newspapter", "N sections", "N words")) %>% 
+  kable_classic(full_width = F, lightable_options = c("striped"), latex_options="scale_down")
+```
+  
+As sections differ in length, there is a possibility that counting sections (previous plot) might not reflect the actual proportion of languages used in texts of different languages. This assumption can be tested using number of words in each section (`LogicalSectionTextWordCount` in the metadata). The main assumption is that one section was in most cases written in one language (thus the same method seems less applicable to pages). Resulting distribution is very similar to the section count showed above: 
+  
+```{r, include = T, echo=F, message=FALSE}
+dat %>% 
+  filter(lang_cln %in% languages) %>% 
+  group_by(keyid, year, lang_cln) %>% 
+  summarise(n_sect = n(),
+    n_words = sum(LogicalSectionTextWordCount)) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = n_words, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = wes_palette("Darjeeling2")[2:5]) + 
+  facet_wrap(~keyid, scales = "fixed") + 
+  labs(x = "Year", 
+       y = "Number of words",
+       fill = "Language", 
+       title = "Languages detected inside the sections of the two main 'Russian' newspapers",
+       subtitle = "y-axis shows number of words in sections") 
+
+```
+  
+To compare the results with the page-level language detection, it is possible to filter only `ekmteataja` and `livzeitung` from the results gathered previously (stored in `data/01_pages_meta_rus_lang.csv`). The main shift from German to Russian and the proportion overall seem roughly same as in the case of sections.  
+  
+```{r, include = T, echo = F}
+page_meta <- read.csv("data/01_pages_meta_rus_lang.csv")
+
+page_meta %>% 
+  mutate(keyid = str_remove_all(docid, "\\d+$")) %>% 
+  rename(year = year.x) %>% 
+  filter(keyid %in% c("ekmteataja", "livzeitung")) %>% 
+  filter(lang_cln %in% languages) %>% 
+  group_by(year, lang_cln, keyid) %>% 
+  count() %>% 
+  ggplot(aes(x = year, y = n, fill = lang_cln)) + geom_col() + 
+  scale_fill_manual(values = wes_palette("Darjeeling2")[2:5]) + 
+  facet_wrap(~keyid) + 
+  labs(x = "Year", 
+       y = "Number of pages",
+       fill = "Language", 
+       title = "Language detection by page in the newspapers",
+       subtitle = "Distribution according to the source: \nnewspapers of the Governorate of Estonia (left) and Livonia (right)") 
+```
+  
+However, the number of pages in German looks very different from the distribution of words in this language gathered from sections. This can be connected with the change of newspapers physical format from smaller to bigger pages and from bigger to smaller font sizes towards the end of the 19th century. Distribution of number of words on pages by decades proves the idea (as there are no physical description of pages in the metadata).  
+   
+```{r, include = TRUE, echo = FALSE}
+page_meta %>% 
+  mutate(keyid = str_remove_all(docid, "\\d+$")) %>% 
+  rename(year = year.x) %>% 
+  mutate(decade = floor(year/5)*5) %>% 
+  ggplot(aes(x = as.character(decade), y = PageTextWordCount)) + 
+  geom_boxplot(col = "#35274A", lwd = 0.7) + 
+  geom_jitter(size = 0.05, alpha = 0.1, col = "#798E87") + 
+  labs(x = "",
+       y = "Number of words", 
+       title = "Distribution of words per page")
+```
+  
+Section-based analysis thus showed more reliable results, reflecting not only the language use in the newspapers, but also some physical properties of the newspapers, such as page or font size changes over time. The plot shows how number of words per page changed in the second half of the 1860s and then remained more or less stable, so that higher number of pages in German in the 1850s and 1860s counter intuitively witness smaller amount of text per page.  
+  
+  
+Additionally, the OCR accuracy dependence on the language can be checked on the level of sections.   
+```{r, include = T, echo = F, message=F, warning=F}
+
+dat %>% 
+  filter(lang_cln %in% c("german", "russian", "ukrainian")) %>% 
+  mutate(ocr_acc = as.numeric(str_remove(PageOCRAccuracy, "%$"))) %>% 
+  ggplot(aes(x = as.factor(decade), y = ocr_acc, fill = lang_cln)) + 
+  geom_boxplot(width = 0.5, position = position_dodge(width = 0.55)) + 
+  scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  labs(x = "", 
+       y = "OCR accuracy (%)",
+       fill = "Language", 
+       title = "OCR accuracy dependence on language",
+       subtitle = "NB: small number of texts detected as 'Ukrainian' and as 'German' after 1880s")
 ```
 
 

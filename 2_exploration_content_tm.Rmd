@@ -36,11 +36,11 @@ rm(meta)
 beta_1880 <- read.csv("data/models/beta_1880_20.csv")
 gamma_1880 <- read.csv("data/models/gamma_1880_20.csv")
 
-beta_sect_20 <- read.csv("new_pipeline_sections/data/02_beta_1880_sections_20.csv")
-gamma_sect_20 <- read.csv("new_pipeline_sections/data/02_gamma_sections_1880_20.csv")
+beta_sect_20 <- read.csv("data/models/beta_1880_sections_20.csv")
+gamma_sect_20 <- read.csv("data/models/gamma_sections_1880_20.csv")
 
-beta_sect_50 <- read.csv("new_pipeline_sections/data/02_beta_1880_sections_50.csv")
-gamma_sect_50 <- read.csv("new_pipeline_sections/data/02_gamma_sections_1880_50.csv")
+beta_sect_50 <- read.csv("data/models/beta_1880_sections_50.csv")
+gamma_sect_50 <- read.csv("data/models/gamma_sections_1880_50.csv")
 ```
 
 ## Exploration with topic modelling
@@ -257,7 +257,7 @@ beta_1917 <- read.csv("data/models/beta_1917_20.csv")
 gamma_1917 <- read.csv("data/models/gamma_1917_20.csv")
 
 # plot for new newspapers appeared??
-meta <- read.csv("data/meta_rus_lang.csv")
+meta <- read.csv("data/01_pages_meta_rus_lang.csv")
 
 meta_1917 <- meta %>% 
   filter(year.x == 1917)
