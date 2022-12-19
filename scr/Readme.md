@@ -10,10 +10,10 @@ Notebook used `digar` package for exporting metadata and texts for newspapers in
 * part "get_matching_texts" creates an output file with texts  
 * texts are written as a single output `.txt` file  
   
-### 2
+### 2 - text retrieval
 Notebooks that show how the texts (pages/sections) were retrieved via `digar` package and connected to the metadata.  
   
-### 3
+### 3 - language detection
 Code used for language detection with R package `textcat`; `3_3_sections_languages_analysis.ipynb` shows some additional steps for analysis described in the report.
 
 ### 4 - text normalisation and preprocessing
