@@ -1,6 +1,6 @@
 # digar project
 
-files descr  
+Short descriptions of the scriptis  
 
 ### 1_test_digar_pckg.ipynb
 Notebook used `digar` package for exporting metadata and texts for newspapers in Russian:  

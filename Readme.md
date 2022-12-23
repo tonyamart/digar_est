@@ -3,7 +3,6 @@
 Working process notes are on [hackmd](https://hackmd.io/@tonyamartt/Hyp2OFhXq)
 
 ##### Folders
-**new_pipeline_sections** is most recent folder comprising scripts and data for the work done with DIGAR collection's Russian-language newspapers before 1918. The scripts focused on the newspapers data on the **sections** level. The scripts are better commented and contain mostly the same steps as in the earlier *scr* folder.  
-  
-**scr** and **data** contains scripts and resulting data for the work done with the same dataset as above. The texts were retrieved on the **page** level. Most part of this work was exploratory and done by summer 2022.  
+Current repository contains data, scripts and reports regarding the exploratory research project on the DIGAR collection.  
+The materials considered in the reports are the Russian-language newspapers issued before 1918. The aim of the reports are to answer questions related  to the current state of the data and metadata in the collection (report 1), as well as the ones from historical perspective, i.e. if it is possible to see major historical shifts and trends in newspaper's language of the western counties of the Russian empire (report 2).
   
