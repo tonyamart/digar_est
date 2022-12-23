@@ -27,6 +27,3 @@ Notebooks used for normalisation (orthography standartisation and lemmatization)
 
 ### 6 & 7
 Code used for the preparation of the reports (exploratory, the actual code used in the reports are stored as `.Rmd`)
-
-#### preprocessing_rus
-Additional notebooks prepared for the text preprocessing.
