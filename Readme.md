@@ -12,6 +12,6 @@ The materials considered in the reports are the Russian-language newspapers issu
 `docs` folder comprises two reports and the way they are created (as `.Rmd`).  
   
 #### Summary
-The first report is dedicated to the use of languages in the newspapers marked as "Russian" in the metadata and published before 1918. As it is known that both Estonian and Livonian governorates were primarily German-language areas of the Russian empire, this study focuses on the digitized newspapers of the 19th century reassessing the languages used in "Russian" or, as it will be revealed, rather official newspapers of the Russian empire.  
+The first report is dedicated to the use of languages in the newspapers labeled as "Russian" in the metadata and published before 1918. As it is known that both Estonian and Livonian governorates were primarily German-language areas of the Russian empire, this study focuses on the digitized newspapers of the 19th century reassessing the languages used in "Russian" or, as it will be revealed, rather official newspapers of the Russian empire.  
   
-The second report is focused on the content changes of these newspapers caused by two major historical evens: Russification of the western governorates in the 1880s and two revolutions of 1917. The aim of the study was to test whether the current state and amount of data is enough to spot content changes using topic modelling (LDA).  
+The second report is focused on the content changes of these newspapers caused by two major historical evens: Russification of the western governorates in the 1880s and two revolutions of 1917. The aim of the study was to test whether the current state and amount of data are enough to spot content changes using topic modelling (LDA).  
