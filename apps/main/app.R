@@ -57,7 +57,7 @@ ui <- fluidPage(
   
   titlePanel(h2("Explore DIGAR collection", align = "center")),
 
-  #### sidebar inputs ####
+    #### sidebar inputs ####
   
   sidebarLayout(
     sidebarPanel(width = 4,
@@ -79,7 +79,10 @@ ui <- fluidPage(
       selectInput("select_np_type", "Newspaper type",
                   choices = np_types,
                   selected = np_types, 
-                  multiple = TRUE)
+                  multiple = TRUE),
+      actionButton("reset", "Reset selection"),
+      p(""),
+      bookmarkButton(label = "Share link to this selection")
     ),
     
     mainPanel(width = 8,
@@ -146,11 +149,11 @@ ui <- fluidPage(
                selectizeInput(
                  "newspaper", "Select the title", multiple = TRUE,
                  choices = NULL
-               ), 
-               helpText("Additional information (country and language of issue as well as exact dates of issuing) are showed when pointing cursore at the beginning of each horisontal bar.")
+               )
              ),
              fluidRow(
-               plotlyOutput("timeline")
+               plotlyOutput("timeline"),
+               helpText("Additional information (country and language of issue as well as exact dates of issuing) are showed when pointing cursore at the beginning of each horisontal bar.")
              )
     ),
     
@@ -166,7 +169,7 @@ ui <- fluidPage(
       ),
       fluidRow(),
       fluidRow(
-        column(5, offset = 1,
+        column(6,
                p("Total number of issues in selected languages"),
                reactableOutput("lang_total")),
         column(6, 
@@ -237,7 +240,8 @@ server <- function(input, output, session) {
   output$search_table <- renderReactable({
     t <- selected_r() %>% 
       select(title, language, country, place, publisher, start, end, 
-             pages_exist, sections_exist, permalink, ester_id)
+             pages_exist, sections_exist, permalink, ester_id) %>% 
+      distinct()
       
     reactable(t,
               searchable = FALSE,
@@ -510,8 +514,17 @@ server <- function(input, output, session) {
     
   })
 
+  #### reset sidebar ####
+  observeEvent(input$reset, {
+    updateSliderInput(inputId = "year", value = c(1800, 2020))
+    updateSelectInput(inputId = "select_lang", selected = unique(issues$language))
+    updateSelectInput(inputId = "select_countries", selected = unique(issues$country))
+    updateSelectInput(inputId = "select_np_type", selected = np_types)
+  })
+  
+
 }
 
 
-shinyApp(ui, server)
+shinyApp(ui, server, enableBookmarking = "url")
 
