@@ -139,17 +139,16 @@ ui <- fluidPage(
     tabPanel("Timeline",
              fluidRow(h3("Compare periods of newspaper publishing on a timeline")),
              fluidRow(
-               p("This plot allows to compare for how long newspapers were issued."), 
-               p("The newspaper can be selected from the list or searched by typing the beginning of the title (click at the empty space inside the box and select or start typing)."), 
+               p("This plot allows to compare for how long newspapers were issued. The newspaper can be selected from the list or searched by typing the beginning of the title (click at the empty space inside the box and select or start typing). By default 5 the longest running newspapers are displayed."), 
                p("Selected newspapers", strong("can be"), "filtered by languages of issue (select", code("langauges"), "at the sidebar on the left)."),
                p("However,", code("Year of issue", "country"), "and", code("type"), 
-                 "selection options", strong("are not applicable"), "for this plot"),
-               p("By default 5 the longest running newspapers are displayed."),
-               
-               selectizeInput(
-                 "newspaper", "Select the title", multiple = TRUE,
-                 choices = NULL
-               )
+                 "selection options", strong("are not applicable"), "for this plot")
+               ),
+               fluidRow(
+                 selectizeInput(
+                   "newspaper", "Select or start typing the title:", multiple = TRUE,
+                   choices = NULL
+                 )
              ),
              fluidRow(
                plotlyOutput("timeline"),
@@ -181,8 +180,8 @@ ui <- fluidPage(
     #### countries ####
     tabPanel("Countries",
              
-             fluidRow(h3("Countries of publishing"),
-                      p("The plot shows number of issues published in Estonia and abroad on a timescale.")
+             fluidRow(h3("Countries of publishing")),
+             fluidRow(p("The plot shows number of issues published in Estonia and abroad on a timescale.")
               ),
             
              fluidRow(
@@ -203,9 +202,9 @@ ui <- fluidPage(
                       ),
              
              fluidRow(
-               plotlyOutput("plot_types")
+               plotlyOutput("plot_types"),
+               p("")
              ),
-             fluidRow(),
              fluidRow(
                column(6,
                       tableOutput("table_types")
