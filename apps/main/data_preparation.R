@@ -5,7 +5,7 @@ library(data.table)
 library(wesanderson)
 
 # metadata: all_issues() metadata output
-dat <- read.csv("data/all_issues_meta.csv")
+# dat <- read.csv("data/all_issues_meta.csv")
 
 glimpse(dat)
 
@@ -153,4 +153,4 @@ issues <- dat_upd %>%
 
 glimpse(issues)
 
-write.csv(issues, "~/Documents/ds/digar/apps/issues_summary.csv")
+#write.csv(issues, "data/issues_summary.csv")

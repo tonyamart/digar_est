@@ -1,0 +1,14 @@
+name: digar-test
+title: digar-test
+username:
+account: tonyamart
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7956604
+bundleId: 6682644
+url: https://tonyamart.shinyapps.io/digar-test/
+when: 1672363720.1319
+lastSyncTime: 1672363720.13191
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: data_preparation.R
